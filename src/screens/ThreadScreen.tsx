@@ -269,7 +269,7 @@ export function ThreadScreen() {
           return url ? (
             <Image source={{ uri: url }} style={styles.media} resizeMode="cover" />
           ) : (
-            <Text style={styles.bubbleText}>🖼️ photo</Text>
+            <Text style={styles.bubbleText}>Photo</Text>
           );
         }
 
@@ -287,7 +287,7 @@ export function ThreadScreen() {
                 setRevealed((prev) => ({ ...prev, [item.item_id]: true }))
               }
             >
-              <Text style={styles.bubbleText}>👁️ Photo vue unique</Text>
+              <Text style={styles.bubbleText}>Photo vue unique</Text>
               <Text style={styles.hint}>
                 {url ? 'Appuyez pour révéler (sans notifier)' : 'Contenu non disponible'}
               </Text>
