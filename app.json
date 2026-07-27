@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Barinsta Lite",
+    "slug": "barinsta-lite",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "barinstalite",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.barinstalite",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
+    },
+    "android": {
+      "package": "com.example.barinstalite"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-av",
+        {
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "extra": {
+      "note": "Unofficial private-API client. See README for caveats."
+    }
+  }
+}
