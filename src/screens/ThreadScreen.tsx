@@ -1,6 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -9,8 +12,19 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Audio } from 'expo-av';
+import * as ImagePicker from 'expo-image-picker';
 import { useRoute, type RouteProp } from '@react-navigation/native';
-import { getThread, sendText } from '../api/directMessages';
+import {
+  getThread,
+  markItemSeen,
+  sendText,
+  sendPhoto,
+  sendVoice,
+  uploadAudio,
+  uploadPhoto,
+  type ViewMode,
+} from '../api/directMessages';
 import { useAuth } from '../context/AuthContext';
 import { DirectItem } from '../types/instagram';
 import { RootStackParamList } from '../navigation/types';
@@ -18,6 +32,73 @@ import { Loading, Screen } from '../ui/Screen';
 import { colors, spacing } from '../ui/theme';
 
 type ThreadRoute = RouteProp<RootStackParamList, 'Thread'>;
+
+/** Refresh the thread this often (ms) to see new incoming items live. */
+const POLL_MS = 4000;
+
+/** A rough waveform for voice messages — only used for the visual bars. */
+function randomWaveform(): number[] {
+  return Array.from({ length: 24 }, () => Math.round(Math.random() * 100) / 100);
+}
+
+/** Short human label + icon for an item type (shown in the "live" banner). */
+function typeLabel(item: DirectItem): string {
+  switch (item.item_type) {
+    case 'text':
+      return '💬 texte';
+    case 'media':
+      return '🖼️ photo';
+    case 'voice_media':
+      return '🎤 vocal';
+    case 'visual_media':
+    case 'raven_media':
+      return item.visual_media?.view_mode === 'permanent'
+        ? '🖼️ photo'
+        : '👁️ photo vue unique';
+    case 'animated_media':
+      return '🎞️ gif';
+    default:
+      return `📎 ${item.item_type}`;
+  }
+}
+
+/** A voice message bubble with a play/pause toggle. */
+function VoiceBubble({ url }: { url?: string }) {
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(
+    () => () => {
+      void soundRef.current?.unloadAsync();
+    },
+    [],
+  );
+
+  const toggle = useCallback(async () => {
+    if (!url) return;
+    if (playing) {
+      await soundRef.current?.pauseAsync();
+      setPlaying(false);
+      return;
+    }
+    if (!soundRef.current) {
+      const { sound } = await Audio.Sound.createAsync({ uri: url });
+      soundRef.current = sound;
+      sound.setOnPlaybackStatusUpdate((s) => {
+        if (s.isLoaded && s.didJustFinish) setPlaying(false);
+      });
+    }
+    await soundRef.current.playAsync();
+    setPlaying(true);
+  }, [url, playing]);
+
+  return (
+    <TouchableOpacity style={styles.voiceRow} onPress={toggle} disabled={!url}>
+      <Text style={styles.voiceIcon}>{playing ? '⏸️' : '▶️'}</Text>
+      <Text style={styles.bubbleText}>Message vocal</Text>
+    </TouchableOpacity>
+  );
+}
 
 export function ThreadScreen() {
   const route = useRoute<ThreadRoute>();
@@ -29,29 +110,42 @@ export function ThreadScreen() {
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
 
-  const load = useCallback(async () => {
+  const recordingRef = useRef<Audio.Recording | null>(null);
+
+  /** Silent refresh — never toggles the full-screen loader, never marks seen. */
+  const refresh = useCallback(async () => {
     try {
       setError(null);
       const res = await getThread(threadId);
       setItems(res.thread?.items ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur');
-    } finally {
-      setLoading(false);
     }
   }, [threadId]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void (async () => {
+      await refresh();
+      setLoading(false);
+    })();
+  }, [refresh]);
 
-  const onSend = useCallback(async () => {
+  // Poll for new incoming messages so we see their type in real time.
+  useEffect(() => {
+    const id = setInterval(() => {
+      void refresh();
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, [refresh]);
+
+  const onSendText = useCallback(async () => {
     const text = draft.trim();
     if (!text || sending) return;
     setSending(true);
-    // Optimistic append.
     const optimistic: DirectItem = {
       item_id: `local-${Date.now()}`,
       item_type: 'text',
@@ -63,13 +157,152 @@ export function ThreadScreen() {
     setDraft('');
     try {
       await sendText(threadId, text);
-      await load();
+      await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Échec de l'envoi");
     } finally {
       setSending(false);
     }
-  }, [draft, sending, selfId, threadId, load]);
+  }, [draft, sending, selfId, threadId, refresh]);
+
+  const pickAndSendPhoto = useCallback(
+    async (source: 'library' | 'camera', viewMode: ViewMode) => {
+      try {
+        const perm =
+          source === 'camera'
+            ? await ImagePicker.requestCameraPermissionsAsync()
+            : await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          setError('Permission refusée pour la photo.');
+          return;
+        }
+        const result =
+          source === 'camera'
+            ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.9 })
+            : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.9 });
+        if (result.canceled) return;
+        const asset = result.assets[0];
+        setSending(true);
+        const uploadId = await uploadPhoto(asset.uri);
+        await sendPhoto(threadId, uploadId, viewMode);
+        await refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Échec de l'envoi de la photo");
+      } finally {
+        setSending(false);
+      }
+    },
+    [threadId, refresh],
+  );
+
+  const onAttach = useCallback(() => {
+    Alert.alert('Envoyer une photo', undefined, [
+      { text: 'Galerie', onPress: () => void pickAndSendPhoto('library', 'permanent') },
+      { text: 'Caméra', onPress: () => void pickAndSendPhoto('camera', 'permanent') },
+      { text: 'Vue unique (galerie)', onPress: () => void pickAndSendPhoto('library', 'once') },
+      { text: 'Vue unique (caméra)', onPress: () => void pickAndSendPhoto('camera', 'once') },
+      { text: 'Annuler', style: 'cancel' },
+    ]);
+  }, [pickAndSendPhoto]);
+
+  const startRecording = useCallback(async () => {
+    try {
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) {
+        setError('Permission micro refusée.');
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording: rec } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+      );
+      recordingRef.current = rec;
+      setRecording(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Impossible de démarrer l'enregistrement");
+    }
+  }, []);
+
+  const stopAndSendRecording = useCallback(async () => {
+    const rec = recordingRef.current;
+    if (!rec) return;
+    setRecording(false);
+    recordingRef.current = null;
+    try {
+      await rec.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      const uri = rec.getURI();
+      if (!uri) return;
+      setSending(true);
+      const uploadId = await uploadAudio(uri);
+      await sendVoice(threadId, uploadId, randomWaveform());
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Échec de l'envoi du vocal");
+    } finally {
+      setSending(false);
+    }
+  }, [threadId, refresh]);
+
+  // Most recent message received from the other person (for the read receipt).
+  const latestIncoming = items.find((i) => String(i.user_id) !== selfId);
+
+  const onMarkRead = useCallback(async () => {
+    if (!latestIncoming) return;
+    try {
+      await markItemSeen(threadId, latestIncoming.item_id);
+      Alert.alert('Vu envoyé', "L'accusé de lecture a été envoyé.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Échec de l'accusé de lecture");
+    }
+  }, [threadId, latestIncoming]);
+
+  const renderContent = useCallback(
+    (item: DirectItem) => {
+      switch (item.item_type) {
+        case 'text':
+          return <Text style={styles.bubbleText}>{item.text}</Text>;
+
+        case 'media': {
+          const url = item.media?.image_versions2?.candidates?.[0]?.url;
+          return url ? (
+            <Image source={{ uri: url }} style={styles.media} resizeMode="cover" />
+          ) : (
+            <Text style={styles.bubbleText}>🖼️ photo</Text>
+          );
+        }
+
+        case 'visual_media':
+        case 'raven_media': {
+          const vm = item.visual_media;
+          const url = vm?.media?.image_versions2?.candidates?.[0]?.url;
+          const isRevealed = revealed[item.item_id];
+          if (isRevealed && url) {
+            return <Image source={{ uri: url }} style={styles.media} resizeMode="cover" />;
+          }
+          return (
+            <TouchableOpacity
+              onPress={() =>
+                setRevealed((prev) => ({ ...prev, [item.item_id]: true }))
+              }
+            >
+              <Text style={styles.bubbleText}>👁️ Photo vue unique</Text>
+              <Text style={styles.hint}>
+                {url ? 'Appuyez pour révéler (sans notifier)' : 'Contenu non disponible'}
+              </Text>
+            </TouchableOpacity>
+          );
+        }
+
+        case 'voice_media':
+          return <VoiceBubble url={item.voice_media?.media?.audio?.audio_src} />;
+
+        default:
+          return <Text style={styles.bubbleText}>{typeLabel(item)}</Text>;
+      }
+    },
+    [revealed],
+  );
 
   if (loading) return <Loading />;
 
@@ -80,7 +313,20 @@ export function ThreadScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={90}
       >
+        {/* Live banner: type of the last received item, without marking it seen. */}
+        {latestIncoming ? (
+          <View style={styles.banner}>
+            <Text style={styles.bannerText} numberOfLines={1}>
+              Dernier reçu : {typeLabel(latestIncoming)}
+            </Text>
+            <TouchableOpacity onPress={onMarkRead}>
+              <Text style={styles.bannerAction}>Marquer comme lu</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {error ? <Text style={styles.error}>{error}</Text> : null}
+
         <FlatList
           data={items}
           inverted
@@ -91,15 +337,17 @@ export function ThreadScreen() {
             return (
               <View style={[styles.bubbleRow, mine ? styles.right : styles.left]}>
                 <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
-                  <Text style={styles.bubbleText}>
-                    {item.item_type === 'text' ? item.text : `[${item.item_type}]`}
-                  </Text>
+                  {renderContent(item)}
                 </View>
               </View>
             );
           }}
         />
+
         <View style={styles.composer}>
+          <TouchableOpacity onPress={onAttach} disabled={sending} style={styles.iconBtn}>
+            <Text style={styles.icon}>＋</Text>
+          </TouchableOpacity>
           <TextInput
             style={styles.input}
             placeholder="Message…"
@@ -108,16 +356,29 @@ export function ThreadScreen() {
             onChangeText={setDraft}
             multiline
           />
-          <TouchableOpacity
-            onPress={onSend}
-            disabled={!draft.trim() || sending}
-            style={styles.sendBtn}
-          >
-            <Text style={[styles.send, (!draft.trim() || sending) && styles.sendOff]}>
-              Envoyer
-            </Text>
-          </TouchableOpacity>
+          {draft.trim() ? (
+            <TouchableOpacity onPress={onSendText} disabled={sending} style={styles.iconBtn}>
+              <Text style={[styles.send, sending && styles.sendOff]}>Envoyer</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={recording ? stopAndSendRecording : startRecording}
+              disabled={sending}
+              style={styles.iconBtn}
+            >
+              <Text style={[styles.icon, recording && styles.recording]}>
+                {recording ? '⏹️' : '🎤'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
+
+        {sending ? (
+          <View style={styles.sendingRow}>
+            <ActivityIndicator color={colors.accent} size="small" />
+            <Text style={styles.hint}> Envoi…</Text>
+          </View>
+        ) : null}
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -126,14 +387,35 @@ export function ThreadScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   error: { color: colors.danger, paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderBottomColor: colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  bannerText: { color: colors.textMuted, fontSize: 13, flex: 1 },
+  bannerAction: { color: colors.accent, fontWeight: '700', fontSize: 13 },
   list: { padding: spacing.md },
   bubbleRow: { marginVertical: 3, flexDirection: 'row' },
   left: { justifyContent: 'flex-start' },
   right: { justifyContent: 'flex-end' },
-  bubble: { maxWidth: '78%', paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: 18 },
+  bubble: {
+    maxWidth: '78%',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 18,
+  },
   mine: { backgroundColor: colors.accent },
   theirs: { backgroundColor: colors.surfaceAlt },
   bubbleText: { color: colors.text, fontSize: 15 },
+  hint: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  media: { width: 200, height: 200, borderRadius: 12, backgroundColor: colors.surface },
+  voiceRow: { flexDirection: 'row', alignItems: 'center' },
+  voiceIcon: { fontSize: 18, marginRight: spacing.sm },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -150,7 +432,15 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     maxHeight: 120,
   },
-  sendBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  iconBtn: { paddingHorizontal: spacing.sm, paddingVertical: spacing.sm },
+  icon: { fontSize: 22, color: colors.accent },
+  recording: { color: colors.danger },
   send: { color: colors.accent, fontWeight: '700' },
   sendOff: { color: colors.textMuted },
+  sendingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
 });

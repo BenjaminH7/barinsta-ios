@@ -21,7 +21,9 @@
     "android": {
       "package": "com.benji477.barinstalite",
       "permissions": [
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA"
       ]
     },
     "plugins": [
@@ -29,7 +31,14 @@
       [
         "expo-av",
         {
-          "microphonePermission": false
+          "microphonePermission": "Autorise le micro pour envoyer des messages vocaux."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Autorise l'accès aux photos pour les envoyer en message.",
+          "cameraPermission": "Autorise la caméra pour envoyer une photo."
         }
       ],
       [

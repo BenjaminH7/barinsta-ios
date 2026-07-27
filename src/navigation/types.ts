@@ -5,11 +5,13 @@ export type RootStackParamList = {
   Thread: { threadId: string; title: string };
   MessageRequests: undefined;
   StoryViewer: { userIds: string[]; startIndex: number; username: string };
+  Profile: { userId: string; username: string };
 };
 
 export type TabParamList = {
   Messages: undefined;
   Stories: undefined;
+  Search: undefined;
   Requests: undefined;
 };
 

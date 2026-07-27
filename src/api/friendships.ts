@@ -36,3 +36,19 @@ export function ignoreFollowRequest(userId: string): Promise<FriendshipChangeRes
     { user_id: userId },
   );
 }
+
+/** Follow a user (or send a follow request if their account is private). */
+export function followUser(userId: string): Promise<FriendshipChangeResponse> {
+  return apiPostForm<FriendshipChangeResponse>(
+    `/api/v1/friendships/create/${userId}/`,
+    { user_id: userId },
+  );
+}
+
+/** Unfollow a user (also cancels a pending outgoing request). */
+export function unfollowUser(userId: string): Promise<FriendshipChangeResponse> {
+  return apiPostForm<FriendshipChangeResponse>(
+    `/api/v1/friendships/destroy/${userId}/`,
+    { user_id: userId },
+  );
+}

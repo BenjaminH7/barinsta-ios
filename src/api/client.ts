@@ -66,6 +66,28 @@ export async function apiPostForm<T>(
   return handle<T>(res);
 }
 
+/**
+ * POST raw bytes to a `rupload_*` endpoint. Instagram's resumable-upload
+ * endpoints expect the file body as `application/octet-stream` plus a set of
+ * `X-Entity-*` / `X-Instagram-Rupload-Params` headers describing the payload.
+ * The caller supplies those extra headers; we add the session headers.
+ */
+export async function apiPostRaw<T>(
+  path: string,
+  body: Blob,
+  extraHeaders: Record<string, string>,
+): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      ...baseHeaders(),
+      ...extraHeaders,
+    },
+    body,
+  });
+  return handle<T>(res);
+}
+
 async function handle<T>(res: Response): Promise<T> {
   const text = await res.text();
   let json: unknown;

@@ -14,6 +14,8 @@ import { MessageRequestsScreen } from '../screens/MessageRequestsScreen';
 import { StoriesScreen } from '../screens/StoriesScreen';
 import { StoryViewerScreen } from '../screens/StoryViewerScreen';
 import { FollowRequestsScreen } from '../screens/FollowRequestsScreen';
+import { SearchScreen } from '../screens/SearchScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -65,6 +67,14 @@ function Tabs() {
         }}
       />
       <Tab.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{
+          title: 'Recherche',
+          tabBarIcon: ({ focused }) => <TabIcon label="🔍" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
         name="Requests"
         component={FollowRequestsScreen}
         options={{
@@ -107,6 +117,11 @@ export function RootNavigator() {
             name="MessageRequests"
             component={MessageRequestsScreen}
             options={{ title: 'Demandes de message' }}
+          />
+          <Stack.Screen
+            name="Profile"
+            component={ProfileScreen}
+            options={({ route }) => ({ title: route.params.username })}
           />
           <Stack.Screen
             name="StoryViewer"
