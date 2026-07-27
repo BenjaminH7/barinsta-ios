@@ -1,9 +1,10 @@
 /**
- * Thin fetch wrapper for the private API. Every request carries the session
- * cookies, the web app-id and a mobile User-Agent — the combination barinsta
- * relies on.
+ * Thin fetch wrapper for Instagram's web-private API. Every request carries the
+ * web-session cookies, the web app-id, a browser User-Agent and the headers the
+ * instagram.com web client always sends (X-Requested-With / Referer / Origin /
+ * X-IG-WWW-Claim). This full web identity is what keeps the API from 400-ing.
  */
-import { BASE_URL, USER_AGENT, X_IG_APP_ID } from './constants';
+import { BASE_URL, WEB_BASE_URL, WEB_USER_AGENT, X_IG_APP_ID } from './constants';
 import { requireSession } from './session';
 
 export class ApiError extends Error {
@@ -20,12 +21,16 @@ export class ApiError extends Error {
 function baseHeaders(): Record<string, string> {
   const session = requireSession();
   return {
-    'User-Agent': USER_AGENT,
+    'User-Agent': WEB_USER_AGENT,
     'X-IG-App-ID': X_IG_APP_ID,
     'X-CSRFToken': session.csrfToken,
+    'X-Requested-With': 'XMLHttpRequest',
+    'X-IG-WWW-Claim': '0',
+    'Referer': `${WEB_BASE_URL}/`,
+    'Origin': WEB_BASE_URL,
     'Cookie': session.cookieHeader,
     'Accept': '*/*',
-    'Accept-Language': 'en-US',
+    'Accept-Language': 'en-US,en;q=0.8',
   };
 }
 

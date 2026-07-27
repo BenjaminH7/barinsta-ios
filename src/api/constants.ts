@@ -1,13 +1,13 @@
 /**
- * Constants for talking to Instagram's private mobile API.
+ * Constants for talking to Instagram's private API.
  *
- * These mirror what the open-source Android client "barinsta" uses. We reuse
- * the web app-id (936619743392459) because our session cookies come from a
- * WebView login on instagram.com — that app-id is the one accepted alongside
- * web-session cookies.
+ * Our session cookies come from a WebView login on www.instagram.com, so we
+ * must present a *web* identity end-to-end: the web app-id (936619743392459),
+ * a browser User-Agent, and the www host. Hitting the app host i.instagram.com
+ * with these web credentials makes Instagram reject the request with HTTP 400.
  */
 
-export const BASE_URL = 'https://i.instagram.com';
+export const BASE_URL = 'https://www.instagram.com';
 export const WEB_BASE_URL = 'https://www.instagram.com';
 export const LOGIN_URL = 'https://www.instagram.com/accounts/login/';
 
@@ -15,11 +15,14 @@ export const LOGIN_URL = 'https://www.instagram.com/accounts/login/';
 export const X_IG_APP_ID = '936619743392459';
 
 /**
- * User-Agent presented to the private API. We use an iOS Instagram UA so the
- * responses match what a real iPhone client would receive.
+ * User-Agent presented to the private API. We use the exact Android Instagram
+ * UA that barinsta sends (Constants.APP_UA). The web app-id above is only
+ * accepted alongside a native app UA of the *same* platform — pairing it with
+ * an iOS UA makes stricter endpoints like reels_tray return an empty body,
+ * which is why the stories tray came back empty ("aucune story").
  */
 export const USER_AGENT =
-  'Instagram 219.0.0.12.117 (iPhone11,8; iOS 14_4; en_US; en-US; scale=2.00; 828x1792; 346138365) AppleWebKit/420+';
+  'Instagram 195.0.0.31.123 Android (25/7.1.1; 440dpi; 2880x5884; Xiaomi; Mi Note 3; jason; qcom; en_US; 302733772)';
 
 /**
  * User-Agent for the *WebView login page*. This MUST look like a normal mobile

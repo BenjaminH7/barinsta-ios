@@ -1,10 +1,11 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
 import { Loading } from '../ui/Screen';
+import { Icon, IconName } from '../ui/Icon';
 import { colors } from '../ui/theme';
 import { RootStackParamList, TabParamList } from './types';
 import { LoginScreen } from '../screens/LoginScreen';
@@ -26,16 +27,21 @@ const navTheme = {
   colors: {
     ...DefaultTheme.colors,
     background: colors.bg,
-    card: colors.surface,
+    card: colors.bg,
     text: colors.text,
     border: colors.border,
     primary: colors.accent,
   },
 };
 
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  return (
-    <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>{label}</Text>
+function tabIcon(name: IconName) {
+  return ({ focused }: { focused: boolean }) => (
+    <Icon
+      name={name}
+      size={26}
+      color={focused ? colors.accent : colors.textFaint}
+      strokeWidth={focused ? 2.2 : 1.8}
+    />
   );
 }
 
@@ -43,44 +49,38 @@ function Tabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: colors.surface },
-        headerTintColor: colors.text,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-        tabBarActiveTintColor: colors.text,
-        tabBarInactiveTintColor: colors.textMuted,
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          height: 88,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textFaint,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
       }}
     >
       <Tab.Screen
         name="Messages"
         component={InboxScreen}
-        options={{
-          title: 'Messages',
-          tabBarIcon: ({ focused }) => <TabIcon label="✉️" focused={focused} />,
-        }}
+        options={{ title: 'Messages', tabBarIcon: tabIcon('chat') }}
       />
       <Tab.Screen
         name="Stories"
         component={StoriesScreen}
-        options={{
-          title: 'Stories',
-          tabBarIcon: ({ focused }) => <TabIcon label="⭕" focused={focused} />,
-        }}
+        options={{ title: 'Stories', tabBarIcon: tabIcon('ring') }}
       />
       <Tab.Screen
         name="Search"
         component={SearchScreen}
-        options={{
-          title: 'Recherche',
-          tabBarIcon: ({ focused }) => <TabIcon label="🔍" focused={focused} />,
-        }}
+        options={{ title: 'Recherche', tabBarIcon: tabIcon('search') }}
       />
       <Tab.Screen
         name="Requests"
         component={FollowRequestsScreen}
-        options={{
-          title: 'Demandes',
-          tabBarIcon: ({ focused }) => <TabIcon label="👤" focused={focused} />,
-        }}
+        options={{ title: 'Demandes', tabBarIcon: tabIcon('person') }}
       />
     </Tab.Navigator>
   );
@@ -98,16 +98,15 @@ export function RootNavigator() {
       ) : (
         <Stack.Navigator
           screenOptions={{
-            headerStyle: { backgroundColor: colors.surface },
-            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.bg },
+            headerShadowVisible: false,
+            headerTintColor: colors.accent,
+            headerTitleStyle: { color: colors.text, fontWeight: '700', fontSize: 17 },
+            headerBackTitleVisible: false,
             contentStyle: { backgroundColor: colors.bg },
           }}
         >
-          <Stack.Screen
-            name="Tabs"
-            component={Tabs}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
           <Stack.Screen
             name="Thread"
             component={ThreadScreen}
@@ -121,7 +120,7 @@ export function RootNavigator() {
           <Stack.Screen
             name="Profile"
             component={ProfileScreen}
-            options={({ route }) => ({ title: route.params.username })}
+            options={{ title: '' }}
           />
           <Stack.Screen
             name="StoryViewer"

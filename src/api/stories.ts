@@ -5,7 +5,14 @@
 import { apiGet } from './client';
 import { ReelsMediaResponse, ReelsTrayResponse } from '../types/instagram';
 
-/** People (you follow) who currently have an active story. */
+/**
+ * People (you follow) who currently have an active story.
+ *
+ * Matches barinsta's StoriesRepository: a plain GET with no params. The tray
+ * was coming back empty ("aucune story") because our requests carried an iOS
+ * User-Agent while sending the web app-id — reels_tray rejects that mismatch.
+ * The fix lives in the shared client (Android app UA, like barinsta).
+ */
 export function getReelsTray(): Promise<ReelsTrayResponse> {
   return apiGet<ReelsTrayResponse>('/api/v1/feed/reels_tray/');
 }

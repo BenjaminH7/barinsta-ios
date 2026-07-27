@@ -5,29 +5,39 @@ import { colors } from './theme';
 interface Props {
   uri?: string;
   size?: number;
-  ring?: boolean; // show a story ring
+  ring?: boolean; // show an unseen-story ring
 }
 
 export function Avatar({ uri, size = 48, ring = false }: Props) {
-  const dim = { width: size, height: size, borderRadius: size / 2 };
+  const inner = ring ? size - 6 : size;
+  const dim = { width: inner, height: inner, borderRadius: inner / 2 };
+  const image = uri ? (
+    <Image source={{ uri }} style={dim} />
+  ) : (
+    <View style={[dim, styles.placeholder]} />
+  );
+
+  if (!ring) return <View style={styles.wrap}>{image}</View>;
+
   return (
     <View
       style={[
-        styles.wrap,
-        dim,
-        ring && { borderWidth: 2, borderColor: colors.accent },
+        styles.ring,
+        { width: size, height: size, borderRadius: size / 2 },
       ]}
     >
-      {uri ? (
-        <Image source={{ uri }} style={dim} />
-      ) : (
-        <View style={[dim, styles.placeholder]} />
-      )}
+      {image}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', justifyContent: 'center' },
-  placeholder: { backgroundColor: colors.surfaceAlt },
+  ring: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.accent,
+  },
+  placeholder: { backgroundColor: colors.surfaceHigh },
 });
