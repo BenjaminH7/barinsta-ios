@@ -7,17 +7,22 @@
     "scheme": "barinstalite",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
+    "jsEngine": "hermes",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.barinstalite",
+      "bundleIdentifier": "com.benji477.barinstalite",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
-        }
+        },
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.example.barinstalite"
+      "package": "com.benji477.barinstalite",
+      "permissions": [
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "plugins": [
       "expo-secure-store",
@@ -26,10 +31,22 @@
         {
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "jsEngine": "hermes"
+          }
+        }
       ]
     ],
     "extra": {
-      "note": "Unofficial private-API client. See README for caveats."
-    }
+      "note": "Unofficial private-API client. See README for caveats.",
+      "eas": {
+        "projectId": "9874e128-5a2d-4dbb-b44f-e83e18e6f20c"
+      }
+    },
+    "owner": "benji_477"
   }
 }
