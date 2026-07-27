@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
-import { LOGIN_URL, USER_AGENT } from '../api/constants';
+import { LOGIN_URL, WEB_USER_AGENT } from '../api/constants';
 import { extractSessionFromCookieJar } from '../api/cookies';
 import { useAuth } from '../context/AuthContext';
 import { Loading, Screen } from '../ui/Screen';
@@ -20,27 +20,34 @@ export function LoginScreen() {
 
   const tryCapture = useCallback(async () => {
     if (handled.current) return;
-    const session = await extractSessionFromCookieJar();
-    if (session) {
-      handled.current = true;
-      setChecking(true);
-      await signIn(session);
+    // WKWebView writes Set-Cookie asynchronously, so `sessionid` may not be in
+    // the jar the instant a navigation settles. Retry a few times before
+    // giving up (another nav/load event will also re-trigger this).
+    for (let attempt = 0; attempt < 5 && !handled.current; attempt++) {
+      const session = await extractSessionFromCookieJar();
+      if (session) {
+        handled.current = true;
+        setChecking(true);
+        await signIn(session);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 400));
     }
   }, [signIn]);
 
   const onNav = useCallback(
     (nav: WebViewNavigation) => {
       // After a successful login IG leaves /accounts/login and lands on the
-      // feed ("/") or another authenticated route. Probe the cookie jar then.
+      // feed, the onetap screen, or another authenticated route. Probe the
+      // cookie jar on any page that isn't an auth/challenge page — capture only
+      // succeeds once sessionid + ds_user_id are present, so eager probing is
+      // safe and far more reliable than matching an exact redirect URL.
       const url = nav.url;
-      const loggedInHint =
-        !url.includes('/accounts/login') &&
-        !url.includes('/challenge') &&
-        !url.includes('/two_factor') &&
-        (url === 'https://www.instagram.com/' ||
-          url.startsWith('https://www.instagram.com/?') ||
-          url.includes('/accounts/onetap'));
-      if (loggedInHint) void tryCapture();
+      const onAuthPage =
+        url.includes('/accounts/login') ||
+        url.includes('/challenge') ||
+        url.includes('/two_factor');
+      if (!onAuthPage) void tryCapture();
     },
     [tryCapture],
   );
@@ -58,7 +65,7 @@ export function LoginScreen() {
       </View>
       <WebView
         source={{ uri: LOGIN_URL }}
-        userAgent={USER_AGENT}
+        userAgent={WEB_USER_AGENT}
         sharedCookiesEnabled
         thirdPartyCookiesEnabled
         onNavigationStateChange={onNav}
