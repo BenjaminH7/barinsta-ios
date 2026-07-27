@@ -1,28 +1,24 @@
 /**
  * Constants for talking to Instagram's private API.
  *
- * Our session cookies come from a WebView login on www.instagram.com, so we
- * must present a *web* identity end-to-end: the web app-id (936619743392459),
- * a browser User-Agent, and the www host. Hitting the app host i.instagram.com
- * with these web credentials makes Instagram reject the request with HTTP 400.
+ * We mirror the open-source Android client barinsta exactly: authenticated
+ * calls hit the app host i.instagram.com carrying ONLY the captured session
+ * cookies and an Instagram *app* User-Agent — no X-IG-App-ID and no web headers
+ * (barinsta's AddCookiesInterceptor adds just Cookie + User-Agent). Pairing a
+ * web app-id with the app host/UA is what made Instagram answer HTTP 400.
  */
 
-export const BASE_URL = 'https://www.instagram.com';
+export const BASE_URL = 'https://i.instagram.com';
 export const WEB_BASE_URL = 'https://www.instagram.com';
 export const LOGIN_URL = 'https://www.instagram.com/accounts/login/';
 
-/** Instagram web app-id, sent as X-IG-App-ID on every private-API request. */
-export const X_IG_APP_ID = '936619743392459';
-
 /**
- * User-Agent presented to the private API. We use the exact Android Instagram
- * UA that barinsta sends (Constants.APP_UA). The web app-id above is only
- * accepted alongside a native app UA of the *same* platform — pairing it with
- * an iOS UA makes stricter endpoints like reels_tray return an empty body,
- * which is why the stories tray came back empty ("aucune story").
+ * User-Agent presented to the private API — barinsta's exact app UA
+ * (Constants.I_USER_AGENT). Instagram accepts this alongside the cookies we
+ * captured from the WebView login.
  */
 export const USER_AGENT =
-  'Instagram 195.0.0.31.123 Android (25/7.1.1; 440dpi; 2880x5884; Xiaomi; Mi Note 3; jason; qcom; en_US; 302733772)';
+  'Instagram 161.0.0.37.121 Android (27/8.1.0; 320dpi; 720x1362; motorola; motorola one; deen_sprout; qcom; pt_BR; 248310224)';
 
 /**
  * User-Agent for the *WebView login page*. This MUST look like a normal mobile

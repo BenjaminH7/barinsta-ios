@@ -14,8 +14,10 @@ import { useAuth } from '../context/AuthContext';
 import { DirectThread } from '../types/instagram';
 import { RootStackParamList } from '../navigation/types';
 import { Avatar } from '../ui/Avatar';
+import { Icon } from '../ui/Icon';
+import { Button, LargeHeader, Separator } from '../ui/components';
 import { EmptyState, Loading, Screen } from '../ui/Screen';
-import { colors, spacing } from '../ui/theme';
+import { colors, spacing, type } from '../ui/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -69,28 +71,39 @@ export function InboxScreen() {
   const selfId = session?.userId ?? '';
 
   return (
-    <Screen>
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.requestsBtn}
-          onPress={() => navigation.navigate('MessageRequests')}
-        >
-          <Text style={styles.requestsText}>
-            Demandes de message{pendingCount ? ` (${pendingCount})` : ''}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={signOut}>
-          <Text style={styles.logout}>Déconnexion</Text>
-        </TouchableOpacity>
-      </View>
+    <Screen edges={['top']}>
+      <LargeHeader
+        title="Messages"
+        right={<Button label="Déconnexion" variant="ghost" onPress={signOut} />}
+      />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <FlatList
         data={threads}
         keyExtractor={(t) => t.thread_id}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <Separator inset={84} />}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textMuted} />
+        }
+        ListHeaderComponent={
+          <TouchableOpacity
+            style={styles.requestsRow}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('MessageRequests')}
+          >
+            <View style={styles.requestsIcon}>
+              <Icon name="person" size={22} color={colors.accent} />
+            </View>
+            <Text style={styles.requestsText}>Demandes de message</Text>
+            {pendingCount ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{pendingCount}</Text>
+              </View>
+            ) : null}
+            <Icon name="chevron" size={18} color={colors.textFaint} />
+          </TouchableOpacity>
         }
         ListEmptyComponent={<EmptyState text="Aucune conversation." />}
         renderItem={({ item }) => {
@@ -100,6 +113,7 @@ export function InboxScreen() {
           return (
             <TouchableOpacity
               style={styles.row}
+              activeOpacity={0.7}
               onPress={() =>
                 navigation.navigate('Thread', { threadId: item.thread_id, title })
               }
@@ -109,7 +123,7 @@ export function InboxScreen() {
                 <Text style={[styles.name, unread && styles.bold]} numberOfLines={1}>
                   {title}
                 </Text>
-                <Text style={[styles.preview, unread && styles.bold]} numberOfLines={1}>
+                <Text style={[styles.preview, unread && styles.previewUnread]} numberOfLines={1}>
                   {preview(item)}
                 </Text>
               </View>
@@ -123,19 +137,35 @@ export function InboxScreen() {
 }
 
 const styles = StyleSheet.create({
-  topBar: {
+  error: { ...type.footnote, color: colors.danger, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+  listContent: { paddingBottom: spacing.xl },
+  requestsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.sm,
   },
-  requestsBtn: {},
-  requestsText: { color: colors.accent, fontWeight: '600' },
-  logout: { color: colors.textMuted },
-  error: { color: colors.danger, padding: spacing.lg },
+  requestsIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  requestsText: { ...type.callout, flex: 1, marginLeft: spacing.md },
+  badge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  badgeText: { color: colors.onAccent, fontSize: 12, fontWeight: '700' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -143,9 +173,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   rowText: { flex: 1, marginLeft: spacing.md },
-  name: { color: colors.text, fontSize: 15 },
-  preview: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
-  bold: { fontWeight: '700', color: colors.text },
+  name: { ...type.headline, fontWeight: '600' },
+  bold: { fontWeight: '700' },
+  preview: { ...type.subhead, marginTop: 3 },
+  previewUnread: { color: colors.text, fontWeight: '500' },
   dot: {
     width: 10,
     height: 10,

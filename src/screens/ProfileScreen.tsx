@@ -1,21 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { getUserInfo } from '../api/users';
 import { followUser, unfollowUser } from '../api/friendships';
 import { FriendshipStatus, IgUserProfile } from '../types/instagram';
 import { RootStackParamList } from '../navigation/types';
 import { Avatar } from '../ui/Avatar';
+import { Icon } from '../ui/Icon';
+import { Button } from '../ui/components';
 import { EmptyState, Loading, Screen } from '../ui/Screen';
-import { colors, spacing } from '../ui/theme';
+import { colors, spacing, type } from '../ui/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
@@ -83,13 +77,19 @@ export function ProfileScreen({ route }: Props) {
   );
 
   return (
-    <Screen>
+    <Screen edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Avatar uri={profile.profile_pic_url} size={96} />
-        <Text style={styles.username} numberOfLines={1}>
-          {profile.username}
-          {profile.is_verified ? ' ✔' : ''}
-        </Text>
+        <Avatar uri={profile.profile_pic_url} size={104} />
+        <View style={styles.nameRow}>
+          <Text style={styles.username} numberOfLines={1}>
+            {profile.username}
+          </Text>
+          {profile.is_verified ? (
+            <View style={styles.verified}>
+              <Icon name="check" size={11} color={colors.onAccent} strokeWidth={1.8} />
+            </View>
+          ) : null}
+        </View>
         {profile.full_name ? (
           <Text style={styles.fullName}>{profile.full_name}</Text>
         ) : null}
@@ -97,54 +97,36 @@ export function ProfileScreen({ route }: Props) {
           <Text style={styles.bio}>{profile.biography}</Text>
         ) : null}
 
-        <TouchableOpacity
-          disabled={busy}
+        <Button
+          label={followLabel(profile.friendship_status)}
+          variant={following ? 'secondary' : 'primary'}
+          loading={busy}
           onPress={toggleFollow}
-          style={[styles.followBtn, following ? styles.followingBtn : styles.notFollowingBtn]}
-        >
-          {busy ? (
-            <ActivityIndicator color={following ? colors.text : '#ffffff'} />
-          ) : (
-            <Text style={[styles.followText, following && styles.followingText]}>
-              {followLabel(profile.friendship_status)}
-            </Text>
-          )}
-        </TouchableOpacity>
+          style={styles.followBtn}
+        />
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { alignItems: 'center', padding: spacing.xl },
-  username: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: spacing.lg,
-  },
-  fullName: { color: colors.textMuted, fontSize: 15, marginTop: spacing.xs },
-  bio: {
-    color: colors.text,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-    marginTop: spacing.md,
-  },
-  followBtn: {
-    marginTop: spacing.xl,
-    minWidth: 200,
-    paddingVertical: 10,
-    borderRadius: 8,
+  content: { alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.md, paddingBottom: spacing.xl },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: spacing.lg },
+  username: { ...type.title3, fontSize: 22 },
+  verified: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  notFollowingBtn: { backgroundColor: colors.accent },
-  followingBtn: {
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+  fullName: { ...type.subhead, marginTop: spacing.xs },
+  bio: {
+    ...type.body,
+    lineHeight: 21,
+    textAlign: 'center',
+    marginTop: spacing.md,
   },
-  followText: { color: '#ffffff', fontWeight: '600', fontSize: 15 },
-  followingText: { color: colors.text },
+  followBtn: { marginTop: spacing.xl, minWidth: 220 },
 });

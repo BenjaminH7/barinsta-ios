@@ -5,7 +5,7 @@ import { LOGIN_URL, WEB_USER_AGENT } from '../api/constants';
 import { extractSessionFromCookieJar } from '../api/cookies';
 import { useAuth } from '../context/AuthContext';
 import { Loading, Screen } from '../ui/Screen';
-import { colors, spacing } from '../ui/theme';
+import { colors, spacing, type } from '../ui/theme';
 
 /**
  * Login is a plain WebView pointed at Instagram's real login page. Once IG
@@ -78,8 +78,8 @@ export function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { padding: spacing.lg },
-  title: { color: colors.text, fontSize: 20, fontWeight: '700' },
-  sub: { color: colors.textMuted, marginTop: spacing.xs, fontSize: 13 },
+  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.lg },
+  title: { ...type.title },
+  sub: { ...type.footnote, marginTop: spacing.sm, lineHeight: 18 },
   web: { flex: 1, backgroundColor: colors.bg },
 });

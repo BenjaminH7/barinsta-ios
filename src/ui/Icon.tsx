@@ -14,6 +14,8 @@ export type IconName =
   | 'plus'
   | 'mic'
   | 'stop'
+  | 'play'
+  | 'pause'
   | 'close'
   | 'chevron'
   | 'check';
@@ -183,6 +185,33 @@ export function Icon({ name, size = 24, color = colors.text, strokeWidth = 2 }: 
               backgroundColor: color,
             }}
           />
+        </View>
+      );
+
+    case 'play':
+      return (
+        <View style={box}>
+          <View
+            style={{
+              width: 0,
+              height: 0,
+              borderTopWidth: size * 0.26,
+              borderBottomWidth: size * 0.26,
+              borderLeftWidth: size * 0.42,
+              borderTopColor: 'transparent',
+              borderBottomColor: 'transparent',
+              borderLeftColor: color,
+              left: size * 0.08,
+            }}
+          />
+        </View>
+      );
+
+    case 'pause':
+      return (
+        <View style={[box, { flexDirection: 'row' }]}>
+          <View style={{ width: size * 0.18, height: size * 0.5, backgroundColor: color, borderRadius: 2, marginHorizontal: size * 0.06 }} />
+          <View style={{ width: size * 0.18, height: size * 0.5, backgroundColor: color, borderRadius: 2, marginHorizontal: size * 0.06 }} />
         </View>
       );
 

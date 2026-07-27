@@ -13,8 +13,9 @@ import { getReelsTray } from '../api/stories';
 import { ReelsTrayItem } from '../types/instagram';
 import { RootStackParamList } from '../navigation/types';
 import { Avatar } from '../ui/Avatar';
+import { LargeHeader } from '../ui/components';
 import { EmptyState, Loading, Screen } from '../ui/Screen';
-import { colors, spacing } from '../ui/theme';
+import { colors, spacing, type } from '../ui/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -56,7 +57,8 @@ export function StoriesScreen() {
   if (loading) return <Loading />;
 
   return (
-    <Screen>
+    <Screen edges={['top']}>
+      <LargeHeader title="Stories" />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <FlatList
         data={tray}
@@ -92,15 +94,15 @@ export function StoriesScreen() {
 }
 
 const styles = StyleSheet.create({
-  error: { color: colors.danger, padding: spacing.lg },
-  grid: { padding: spacing.sm },
+  error: { ...type.footnote, color: colors.danger, paddingHorizontal: spacing.lg },
+  grid: { paddingHorizontal: spacing.sm, paddingBottom: spacing.xl },
   rowWrap: { justifyContent: 'flex-start' },
   cell: { width: '33.33%', alignItems: 'center', paddingVertical: spacing.md },
   username: {
+    ...type.caption,
     color: colors.text,
-    fontSize: 12,
-    marginTop: spacing.xs,
-    maxWidth: 90,
+    marginTop: spacing.sm,
+    maxWidth: 96,
     textAlign: 'center',
   },
 });

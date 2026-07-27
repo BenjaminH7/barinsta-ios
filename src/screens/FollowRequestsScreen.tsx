@@ -5,7 +5,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import {
@@ -15,8 +14,9 @@ import {
 } from '../api/friendships';
 import { IgUser } from '../types/instagram';
 import { Avatar } from '../ui/Avatar';
+import { Button, LargeHeader, Separator } from '../ui/components';
 import { EmptyState, Loading, Screen } from '../ui/Screen';
-import { colors, spacing } from '../ui/theme';
+import { colors, spacing, type } from '../ui/theme';
 
 export function FollowRequestsScreen() {
   const [users, setUsers] = useState<IgUser[]>([]);
@@ -58,11 +58,14 @@ export function FollowRequestsScreen() {
   if (loading) return <Loading />;
 
   return (
-    <Screen>
+    <Screen edges={['top']}>
+      <LargeHeader title="Demandes" />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <FlatList
         data={users}
         keyExtractor={(u) => u.pk}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <Separator inset={80} />}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -70,7 +73,7 @@ export function FollowRequestsScreen() {
               setRefreshing(true);
               void load();
             }}
-            tintColor={colors.accent}
+            tintColor={colors.textMuted}
           />
         }
         ListEmptyComponent={<EmptyState text="Aucune demande d'abonnement." />}
@@ -90,20 +93,20 @@ export function FollowRequestsScreen() {
                 ) : null}
               </View>
               <View style={styles.actions}>
-                <TouchableOpacity
+                <Button
+                  label="Accepter"
+                  variant="primary"
                   disabled={isBusy}
-                  style={[styles.btn, styles.accept]}
                   onPress={() => act(item, true)}
-                >
-                  <Text style={styles.btnText}>Accepter</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
+                  style={styles.btn}
+                />
+                <Button
+                  label="Refuser"
+                  variant="secondary"
                   disabled={isBusy}
-                  style={[styles.btn, styles.decline]}
                   onPress={() => act(item, false)}
-                >
-                  <Text style={styles.btnText}>Refuser</Text>
-                </TouchableOpacity>
+                  style={styles.btn}
+                />
               </View>
             </View>
           );
@@ -114,21 +117,17 @@ export function FollowRequestsScreen() {
 }
 
 const styles = StyleSheet.create({
-  error: { color: colors.danger, padding: spacing.lg },
+  error: { ...type.footnote, color: colors.danger, paddingHorizontal: spacing.lg },
+  listContent: { paddingBottom: spacing.xl },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   info: { flex: 1, marginLeft: spacing.md },
-  name: { color: colors.text, fontSize: 15, fontWeight: '600' },
-  full: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
-  actions: { gap: spacing.xs },
-  btn: { paddingVertical: 6, paddingHorizontal: spacing.md, borderRadius: 8, alignItems: 'center' },
-  accept: { backgroundColor: colors.accent },
-  decline: { backgroundColor: colors.surfaceAlt },
-  btnText: { color: colors.text, fontWeight: '600', fontSize: 13 },
+  name: { ...type.headline, fontWeight: '600' },
+  full: { ...type.footnote, marginTop: 2 },
+  actions: { gap: spacing.sm },
+  btn: { minHeight: 34, paddingHorizontal: spacing.md },
 });

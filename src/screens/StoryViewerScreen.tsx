@@ -13,7 +13,8 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import { getReelsMedia } from '../api/stories';
 import { StoryItem } from '../types/instagram';
 import { RootStackParamList } from '../navigation/types';
-import { colors, spacing } from '../ui/theme';
+import { Icon } from '../ui/Icon';
+import { spacing } from '../ui/theme';
 
 type ViewerRoute = RouteProp<RootStackParamList, 'StoryViewer'>;
 
@@ -102,7 +103,7 @@ export function StoryViewerScreen() {
       <View style={styles.header}>
         <Text style={styles.username}>{username}</Text>
         <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-          <Text style={styles.close}>✕</Text>
+          <Icon name="close" size={22} color="#fff" strokeWidth={2} />
         </Pressable>
       </View>
 

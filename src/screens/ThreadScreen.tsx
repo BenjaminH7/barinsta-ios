@@ -28,8 +28,9 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { DirectItem } from '../types/instagram';
 import { RootStackParamList } from '../navigation/types';
+import { Icon } from '../ui/Icon';
 import { Loading, Screen } from '../ui/Screen';
-import { colors, spacing } from '../ui/theme';
+import { colors, radius, spacing, type } from '../ui/theme';
 
 type ThreadRoute = RouteProp<RootStackParamList, 'Thread'>;
 
@@ -41,24 +42,22 @@ function randomWaveform(): number[] {
   return Array.from({ length: 24 }, () => Math.round(Math.random() * 100) / 100);
 }
 
-/** Short human label + icon for an item type (shown in the "live" banner). */
+/** Short human label for an item type (shown in the "live" banner). */
 function typeLabel(item: DirectItem): string {
   switch (item.item_type) {
     case 'text':
-      return '💬 texte';
+      return 'Texte';
     case 'media':
-      return '🖼️ photo';
+      return 'Photo';
     case 'voice_media':
-      return '🎤 vocal';
+      return 'Message vocal';
     case 'visual_media':
     case 'raven_media':
-      return item.visual_media?.view_mode === 'permanent'
-        ? '🖼️ photo'
-        : '👁️ photo vue unique';
+      return item.visual_media?.view_mode === 'permanent' ? 'Photo' : 'Photo vue unique';
     case 'animated_media':
-      return '🎞️ gif';
+      return 'GIF';
     default:
-      return `📎 ${item.item_type}`;
+      return item.item_type;
   }
 }
 
@@ -94,7 +93,9 @@ function VoiceBubble({ url }: { url?: string }) {
 
   return (
     <TouchableOpacity style={styles.voiceRow} onPress={toggle} disabled={!url}>
-      <Text style={styles.voiceIcon}>{playing ? '⏸️' : '▶️'}</Text>
+      <View style={styles.voicePlay}>
+        <Icon name={playing ? 'pause' : 'play'} size={16} color={colors.text} />
+      </View>
       <Text style={styles.bubbleText}>Message vocal</Text>
     </TouchableOpacity>
   );
@@ -346,7 +347,7 @@ export function ThreadScreen() {
 
         <View style={styles.composer}>
           <TouchableOpacity onPress={onAttach} disabled={sending} style={styles.iconBtn}>
-            <Text style={styles.icon}>＋</Text>
+            <Icon name="plus" size={26} color={colors.textMuted} strokeWidth={2} />
           </TouchableOpacity>
           <TextInput
             style={styles.input}
@@ -357,8 +358,8 @@ export function ThreadScreen() {
             multiline
           />
           {draft.trim() ? (
-            <TouchableOpacity onPress={onSendText} disabled={sending} style={styles.iconBtn}>
-              <Text style={[styles.send, sending && styles.sendOff]}>Envoyer</Text>
+            <TouchableOpacity onPress={onSendText} disabled={sending} style={styles.sendBtn}>
+              <Text style={styles.sendText}>Envoyer</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -366,9 +367,11 @@ export function ThreadScreen() {
               disabled={sending}
               style={styles.iconBtn}
             >
-              <Text style={[styles.icon, recording && styles.recording]}>
-                {recording ? '⏹️' : '🎤'}
-              </Text>
+              <Icon
+                name={recording ? 'stop' : 'mic'}
+                size={24}
+                color={recording ? colors.danger : colors.textMuted}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -386,40 +389,50 @@ export function ThreadScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  error: { color: colors.danger, paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  error: { ...type.footnote, color: colors.danger, paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.surface,
     borderBottomColor: colors.border,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  bannerText: { color: colors.textMuted, fontSize: 13, flex: 1 },
-  bannerAction: { color: colors.accent, fontWeight: '700', fontSize: 13 },
+  bannerText: { ...type.footnote, flex: 1 },
+  bannerAction: { ...type.footnote, color: colors.accent, fontWeight: '700' },
   list: { padding: spacing.md },
   bubbleRow: { marginVertical: 3, flexDirection: 'row' },
   left: { justifyContent: 'flex-start' },
   right: { justifyContent: 'flex-end' },
   bubble: {
     maxWidth: '78%',
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.sm + 2,
     paddingHorizontal: spacing.md,
-    borderRadius: 18,
+    borderRadius: 20,
   },
-  mine: { backgroundColor: colors.accent },
-  theirs: { backgroundColor: colors.surfaceAlt },
-  bubbleText: { color: colors.text, fontSize: 15 },
-  hint: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  media: { width: 200, height: 200, borderRadius: 12, backgroundColor: colors.surface },
+  mine: { backgroundColor: colors.accent, borderBottomRightRadius: 6 },
+  theirs: { backgroundColor: colors.surfaceHigh, borderBottomLeftRadius: 6 },
+  bubbleText: { ...type.body, fontSize: 15, lineHeight: 20 },
+  hint: { ...type.caption, marginTop: 2 },
+  media: { width: 220, height: 220, borderRadius: radius.md, backgroundColor: colors.surface },
   voiceRow: { flexDirection: 'row', alignItems: 'center' },
-  voiceIcon: { fontSize: 18, marginRight: spacing.sm },
+  voicePlay: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
   composer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: spacing.sm,
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
     borderTopColor: colors.border,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
@@ -427,16 +440,27 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.text,
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 20,
+    borderRadius: radius.xl,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.sm + 2,
+    fontSize: 16,
     maxHeight: 120,
   },
-  iconBtn: { paddingHorizontal: spacing.sm, paddingVertical: spacing.sm },
-  icon: { fontSize: 22, color: colors.accent },
-  recording: { color: colors.danger },
-  send: { color: colors.accent, fontWeight: '700' },
-  sendOff: { color: colors.textMuted },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendBtn: {
+    height: 36,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendText: { color: colors.onAccent, fontWeight: '600', fontSize: 15 },
   sendingRow: {
     flexDirection: 'row',
     alignItems: 'center',

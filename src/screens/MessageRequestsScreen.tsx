@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, StyleSheet, Text, View } from 'react-native';
 import {
   approveThread,
   declineThread,
@@ -8,8 +8,9 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { DirectThread } from '../types/instagram';
 import { Avatar } from '../ui/Avatar';
+import { Button, Separator } from '../ui/components';
 import { EmptyState, Loading, Screen } from '../ui/Screen';
-import { colors, spacing } from '../ui/theme';
+import { colors, spacing, type } from '../ui/theme';
 
 export function MessageRequestsScreen() {
   const { session } = useAuth();
@@ -50,10 +51,12 @@ export function MessageRequestsScreen() {
   if (loading) return <Loading />;
 
   return (
-    <Screen>
+    <Screen edges={['bottom']}>
       <FlatList
         data={threads}
         keyExtractor={(t) => t.thread_id}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <Separator inset={80} />}
         ListEmptyComponent={<EmptyState text="Aucune demande de message." />}
         renderItem={({ item }) => {
           const other = item.users.find((u) => u.pk !== selfId) ?? item.users[0];
@@ -71,20 +74,20 @@ export function MessageRequestsScreen() {
                 </Text>
               </View>
               <View style={styles.actions}>
-                <TouchableOpacity
+                <Button
+                  label="Accepter"
+                  variant="primary"
                   disabled={isBusy}
-                  style={[styles.btn, styles.accept]}
                   onPress={() => act(item, true)}
-                >
-                  <Text style={styles.btnText}>Accepter</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
+                  style={styles.btn}
+                />
+                <Button
+                  label="Refuser"
+                  variant="secondary"
                   disabled={isBusy}
-                  style={[styles.btn, styles.decline]}
                   onPress={() => act(item, false)}
-                >
-                  <Text style={styles.btnText}>Refuser</Text>
-                </TouchableOpacity>
+                  style={styles.btn}
+                />
               </View>
             </View>
           );
@@ -95,20 +98,16 @@ export function MessageRequestsScreen() {
 }
 
 const styles = StyleSheet.create({
+  listContent: { paddingBottom: spacing.xl },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   info: { flex: 1, marginLeft: spacing.md },
-  name: { color: colors.text, fontSize: 15, fontWeight: '600' },
-  preview: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
-  actions: { alignItems: 'stretch', gap: spacing.xs },
-  btn: { paddingVertical: 6, paddingHorizontal: spacing.md, borderRadius: 8, alignItems: 'center' },
-  accept: { backgroundColor: colors.accent },
-  decline: { backgroundColor: colors.surfaceAlt },
-  btnText: { color: colors.text, fontWeight: '600', fontSize: 13 },
+  name: { ...type.headline, fontWeight: '600' },
+  preview: { ...type.footnote, marginTop: 2 },
+  actions: { gap: spacing.sm },
+  btn: { minHeight: 34, paddingHorizontal: spacing.md },
 });
